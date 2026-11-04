@@ -27,6 +27,7 @@ table{width:100%;border-collapse:collapse}.table-wrap{overflow-x:auto;-webkit-ov
  .hero{padding:10px 136px 16px 4px;min-height:188px}
  .hero h1{font-size:36px;line-height:.98;margin:2px 0 8px}
 }
+.player-button{display:flex;align-items:center;justify-content:space-between;gap:10px}.pick-tick{color:#c8f56a;font-size:22px;font-weight:700;line-height:1}
 </style>
 </head>
 <body>
@@ -652,7 +653,7 @@ async function renderLogin(){
    $("playerChoices").innerHTML=[...loginState.players].sort((a,b)=>a.name.localeCompare(b.name)).map(player=>{
      const n=player.name;
      const eliminated=!player.alive;
-     return `<button type="button" class="player-button${eliminated?" eliminated-player":""}" data-name="${esc(n)}">${esc(n)} ${flagFor(n)}${eliminated?" · ELIMINATED":""}</button>`;
+     return `<button type="button" class="player-button${eliminated?" eliminated-player":""}" data-name="${esc(n)}"><span>${esc(n)} ${flagFor(n)}${eliminated?" · ELIMINATED":""}</span>${(!eliminated&&loginState.currentPicks&&loginState.currentPicks[n])?'<span class="pick-tick" title="Team chosen" aria-label="Team chosen">✓</span>':""}</button>`;
    }).join("")+`<button type="button" id="adminButton" class="secondary" style="margin-top:12px">Administrator</button>`;
  }catch(e){$("loginMsg").textContent=e.message;return}
  document.querySelectorAll("[data-name]").forEach(b=>b.addEventListener("click",()=>handlePlayerLogin(b.dataset.name)));
