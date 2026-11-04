@@ -366,7 +366,13 @@ async function loadFixtures(){
      const kickoff=ev.date?new Date(ev.date):null;
      return {home,away,kickoff};
    }).sort((a,b)=>(a.kickoff?.getTime()||0)-(b.kickoff?.getTime()||0));
-   const tz=(typeof me==="string"&&me.toLowerCase()==="joycey")?"America/Chicago":undefined;
+   // Fixture times are shown in each player's own timezone: George and Shaunagh
+   // in Malta, Dazza in Sydney, Joycey in Central Time, everyone else in UK time.
+   // (The admin view just uses the device's own timezone.)
+   const who=(typeof me==="string")?me.toLowerCase():"";
+   const TZ_BY_PLAYER={george:["Europe/Malta","Malta time"],shaunagh:["Europe/Malta","Malta time"],dazza:["Australia/Sydney","Sydney time"],joycey:["America/Chicago","Central Time"]};
+   const tzInfo=who==="admin"?null:(TZ_BY_PLAYER[who]||["Europe/London","UK time"]);
+   const tz=tzInfo?tzInfo[0]:undefined;
    const groups=[];
    for(const m of matches){
      const gkey=m.kickoff?m.kickoff.getTime():"tbc";
@@ -374,7 +380,7 @@ async function loadFixtures(){
      if(!g){g={key:gkey,kickoff:m.kickoff,fixtures:[]};groups.push(g)}
      g.fixtures.push(m);
    }
-   const tzNote=tz?`<div class="small muted" style="margin-bottom:8px">Times shown in Central Time</div>`:"";
+   const tzNote=tzInfo?`<div class="small muted" style="margin-bottom:8px">Times shown in ${tzInfo[1]}</div>`:"";
    el.innerHTML=tzNote+groups.map(g=>{
      const day=g.kickoff?g.kickoff.toLocaleString(undefined,{weekday:"short",day:"numeric",month:"short",timeZone:tz}):"";
      const time=g.kickoff?g.kickoff.toLocaleString(undefined,{hour:"2-digit",minute:"2-digit",timeZone:tz}):"TBC";
