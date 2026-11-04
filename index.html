@@ -28,7 +28,7 @@ table{width:100%;border-collapse:collapse}.table-wrap{overflow-x:auto;-webkit-ov
 <button id="homeButton" class="home-button" type="button">Home</button>
 <button id="rulesButton" class="home-button rules-button" type="button">Rules</button>
 <h1>LAST TWAT STANDING</h1>
-<div class="muted">Premier League · €20 entry · <span id="potLabel">€180 pot</span></div>
+<div class="muted">Premier League · £20 entry · <span id="potLabel">£180 pot</span></div>
 </header>
 
 <section id="login" class="card hidden">
@@ -43,7 +43,7 @@ table{width:100%;border-collapse:collapse}.table-wrap{overflow-x:auto;-webkit-ov
 <div class="grid">
 <div><div class="muted">Current round</div><strong id="round">3</strong></div>
 <div><div class="muted">Players alive</div><strong id="alive">5</strong></div>
-<div><div class="muted">Prize pot</div><strong id="pot">€180</strong></div>
+<div><div class="muted">Prize pot</div><strong id="pot">£180</strong></div>
 <div><div class="muted">Game status</div><strong id="gameStatus">OPEN</strong></div>
 </div>
 </div>
@@ -123,7 +123,7 @@ table{width:100%;border-collapse:collapse}.table-wrap{overflow-x:auto;-webkit-ov
 <li>If you miss the deadline, you&rsquo;ll be assigned a default pick, namely the first team available to you alphabetically (AFC Bournemouth, Arsenal, Aston Villa, etc...).</li>
 <li>ONLY the last remaining player wins. There is NO splitting the prize pool between players. A person either wins the round or is eliminated during the round or is entered back in during a rollover.</li>
 <li>If everyone remaining loses in the same game week, all are eliminated and a rollover occurs.</li>
-<li>With a rollover, every player must pay a further €20 so the prize is boosted.</li>
+<li>With a rollover, every player must pay a further £20 so the prize is boosted.</li>
 <li>A player can choose not to take part in the rollover if they do not want to pay extra. However, they do not get a refund for what they have already paid in.</li>
 <li>Cup matches, postponed fixtures, and abandoned games usually have organiser-specific handling.</li>
 </ul>
@@ -463,8 +463,8 @@ async function api(method="GET",body=null){
    const survivors=roundActive.filter(n=>!eliminated.includes(n));
    let resultsText=`Round ${last.round} results:\n\n`;
    resultsText+=eliminated.length?`ELIMINATED:\n${eliminated.join("\n")}\n\n`:"No eliminations this round!\n\n";
-   if(survivors.length===1&&!wasWipeout) resultsText+=`🏆 ${survivors[0]} wins €${state.pot}!`;
-   else if(wasWipeout) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, pot rolls over to €${state.pot}.\n\nALIVE:\n${state.players.map(p=>p.name).sort().join("\n")}`;
+   if(survivors.length===1&&!wasWipeout) resultsText+=`🏆 ${survivors[0]} wins £${state.pot}!`;
+   else if(wasWipeout) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, pot rolls over to £${state.pot}.\n\nALIVE:\n${state.players.map(p=>p.name).sort().join("\n")}`;
    else resultsText+=`STILL ALIVE:\n${survivors.join("\n")}`;
    resultsText+=`\n\nhttps://lasttwatstanding.vercel.app/`;
    state.lastResultsAnnouncement={round:last.round,text:resultsText};
@@ -512,8 +512,8 @@ async function api(method="GET",body=null){
    const stillAlive=state.players.filter(p=>p.alive).map(p=>p.name).sort();
    let resultsText=`Round ${resolvedRound} results:\n\n`;
    resultsText+=eliminated.length?`ELIMINATED:\n${eliminated.join("\n")}\n\n`:"No eliminations this round!\n\n";
-   if(state.winner) resultsText+=`🏆 ${state.winner} wins €${state.pot}!`;
-   else if(wipedOut) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, pot rolls over to €${state.pot}.\n\nALIVE:\n${stillAlive.join("\n")}`;
+   if(state.winner) resultsText+=`🏆 ${state.winner} wins £${state.pot}!`;
+   else if(wipedOut) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, pot rolls over to £${state.pot}.\n\nALIVE:\n${stillAlive.join("\n")}`;
    else resultsText+=`STILL ALIVE:\n${stillAlive.join("\n")}`;
    resultsText+=`\n\nhttps://lasttwatstanding.vercel.app/`;
    state.lastResultsAnnouncement={round:resolvedRound,text:resultsText};
@@ -571,7 +571,7 @@ async function api(method="GET",body=null){
 async function renderLogin(){
  try{
    const loginState=await api("GET");
-   $("potLabel").textContent="€"+(typeof loginState.pot==="number"?loginState.pot:180)+" pot";
+   $("potLabel").textContent="£"+(typeof loginState.pot==="number"?loginState.pot:180)+" pot";
    $("playerChoices").innerHTML=[...loginState.players].sort((a,b)=>a.name.localeCompare(b.name)).map(player=>{
      const n=player.name;
      const eliminated=!player.alive;
@@ -624,8 +624,8 @@ async function maybeAutoAssign(){
 function render(){
  $("round").textContent=state.round;
  $("alive").textContent=state.players.filter(p=>p.alive).length;
- $("pot").textContent="€"+(typeof state.pot==="number"?state.pot:180);
- $("potLabel").textContent="€"+(typeof state.pot==="number"?state.pot:180)+" pot";
+ $("pot").textContent="£"+(typeof state.pot==="number"?state.pot:180);
+ $("potLabel").textContent="£"+(typeof state.pot==="number"?state.pot:180)+" pot";
  $("gameStatus").textContent=state.winner?"FINISHED":"OPEN";
  renderLockCountdown();
  loadFixtures();
@@ -649,7 +649,7 @@ function render(){
    $("savePick").textContent=`Save Round ${state.round} Selection`;
    $("myStatus").innerHTML=`<p><strong>${esc(p.name)}</strong> · <span class="${p.alive?"alive":"out"}">${p.alive?"ALIVE":"ELIMINATED"}</span></p>`;
    if(!p.alive){$("pickArea").innerHTML="<div class='notice'>You are eliminated from the game.</div>";$("savePick").classList.add("hidden");}
-   else if(state.winner){$("pickArea").innerHTML=`<div class='winner'>🏆 ${esc(state.winner)} wins €${state.pot}</div>`;$("savePick").classList.add("hidden");}
+   else if(state.winner){$("pickArea").innerHTML=`<div class='winner'>🏆 ${esc(state.winner)} wins £${state.pot}</div>`;$("savePick").classList.add("hidden");}
    else if(isLocked()){
      $("pickArea").innerHTML="<div class='notice'>Picks are locked for this round — the first game has kicked off.</div>";
      $("savePick").classList.add("hidden");
@@ -668,7 +668,7 @@ function render(){
 }
 async function startNextGameFlow(){
      const suggested=state.players.length*20;
-     const entered=await customPrompt(`Enter the pot for the new game in €. ${state.players.length} players × €20 = €${suggested}.`,{validate:v=>String(v).trim()!==""&&Number.isFinite(Number(v))&&Number(v)>=0?null:"Enter a valid, non-negative number."});
+     const entered=await customPrompt(`Enter the pot for the new game in £. ${state.players.length} players × £20 = £${suggested}.`,{validate:v=>String(v).trim()!==""&&Number.isFinite(Number(v))&&Number(v)>=0?null:"Enter a valid, non-negative number."});
      if(entered===null) return;
      const pot=Number(entered);
      const nextMd=await fetchNextUpcomingMatchday();
@@ -676,11 +676,11 @@ async function startNextGameFlow(){
      const rEntered=await customPrompt(`Which round/match week is this new game starting in? Next upcoming match week is ${dflt}. Type that number to confirm, or another one.`,{validate:v=>{const n=Number(v);return Number.isInteger(n)&&n>state.round&&n<=38?null:`Enter a number from ${state.round+1} to 38.`}});
      if(rEntered===null) return;
      const newRound=Number(rEntered);
-     if(!confirm(`Start round ${newRound} with all ${state.players.length} players alive and a pot of €${pot}?`)) return;
+     if(!confirm(`Start round ${newRound} with all ${state.players.length} players alive and a pot of £${pot}?`)) return;
      try{
        state=await api("POST",{action:"startNewGame",pot,round:newRound});
        $("lockMatchday").value=state.round;
-       $("adminMsg").textContent=`New game started: round ${state.round}, pot €${state.pot}.`;
+       $("adminMsg").textContent=`New game started: round ${state.round}, pot £${state.pot}.`;
        render();
        const next=await fetchNextUpcomingMatchday();
        if(next&&confirm(`Set the pick deadline now? Next upcoming match week is ${next.matchday}, first kickoff ${fmtKickoff(next.kickoff)}.`)){
@@ -817,9 +817,9 @@ $("setRoundBtn").addEventListener("click",async()=>{
  }catch(e){$("adminMsg").textContent=e.message}
 });
 $("setPotBtn").addEventListener("click",async()=>{
- const entered=await customPrompt(`Enter the new pot amount in €. Current pot is €${typeof state.pot==="number"?state.pot:180}.`,{validate:v=>Number.isFinite(Number(v))&&Number(v)>=0?null:"Enter a valid, non-negative number."});
+ const entered=await customPrompt(`Enter the new pot amount in £. Current pot is £${typeof state.pot==="number"?state.pot:180}.`,{validate:v=>Number.isFinite(Number(v))&&Number(v)>=0?null:"Enter a valid, non-negative number."});
  if(entered===null) return;
- try{state=await api("POST",{action:"setPot",amount:Number(entered)});$("adminMsg").textContent=`Pot set to €${state.pot}.`;render()}catch(e){$("adminMsg").textContent=e.message}
+ try{state=await api("POST",{action:"setPot",amount:Number(entered)});$("adminMsg").textContent=`Pot set to £${state.pot}.`;render()}catch(e){$("adminMsg").textContent=e.message}
 });
 $("reopenRoundBtn").addEventListener("click",async()=>{
  const last=state.history?.[state.history.length-1];
@@ -871,14 +871,14 @@ $("resolve").addEventListener("click",async()=>{
  const willWipeOut=Object.keys(results).length>0&&Object.values(results).every(r=>r!=="win");
  let topUp=0;
  if(willWipeOut){
-   const entered=await customPrompt("Everyone would be eliminated this round — no single winner. Enter the €amount to top up the pot (the current pot rolls over on top of this):");
+   const entered=await customPrompt("Everyone would be eliminated this round — no single winner. Enter the £amount to top up the pot (the current pot rolls over on top of this):");
    if(entered===null) return;
    topUp=Number(entered);
    if(!Number.isFinite(topUp)||topUp<0){$("adminMsg").textContent="Enter a valid top-up amount.";return}
  }
  try{
    state=await api("POST",{action:"resolve",results,topUp});
-   $("adminMsg").textContent=state.winner?`🏆 ${state.winner} wins €${state.pot}.`:willWipeOut?`Everyone was eliminated — all players reinstated, pot rolled over to €${state.pot}. Round ${state.round} is now open.`:`Round resolved. Round ${state.round} is now open.`;
+   $("adminMsg").textContent=state.winner?`🏆 ${state.winner} wins £${state.pot}.`:willWipeOut?`Everyone was eliminated — all players reinstated, pot rolled over to £${state.pot}. Round ${state.round} is now open.`:`Round resolved. Round ${state.round} is now open.`;
    render();
  }catch(e){$("adminMsg").textContent=e.message}
 });
