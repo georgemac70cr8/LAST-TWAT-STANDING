@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Last Man Standing — Premier League</title>
+<title>Last Twat Standing — Premier League</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -26,8 +26,9 @@ table{width:100%;border-collapse:collapse}.table-wrap{overflow-x:auto;-webkit-ov
 <div class="wrap">
 <header class="hero">
 <button id="homeButton" class="home-button" type="button">Home</button>
-<h1>LAST MAN STANDING</h1>
+<h1>LAST TWAT STANDING</h1>
 <div class="muted">Premier League · €20 entry · <span id="potLabel">€180 pot</span></div>
+<button id="rulesButton" class="secondary" type="button" style="width:auto;min-height:40px;margin-top:12px;padding:8px 18px">Rules</button>
 </header>
 
 <section id="login" class="card hidden">
@@ -109,6 +110,27 @@ table{width:100%;border-collapse:collapse}.table-wrap{overflow-x:auto;-webkit-ov
 </section>
 </div>
 
+<div id="rulesOverlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+<div class="modal-card" style="max-width:560px;max-height:92vh;overflow-y:auto;text-align:left"><style>#rulesOverlay p{max-width:none}</style>
+<h2 id="rulesTitle">Rules</h2>
+<p>&ldquo;Last Twat Standing&rdquo; is a Premier League elimination game.</p>
+<ul style="padding-left:20px;line-height:1.55">
+<li>Each week, pick one Premier League team to win.</li>
+<li>If that team wins, you survive to the next round.</li>
+<li>If it draws or loses, you&rsquo;re eliminated.</li>
+<li>You can&rsquo;t pick the same team more than once per round.</li>
+<li>Picks must be submitted before the stated deadline.</li>
+<li>If you miss the deadline, you&rsquo;ll be assigned a default pick, namely the first team available to you alphabetically (AFC Bournemouth, Arsenal, Aston Villa, etc...).</li>
+<li>The last remaining player wins. There is NO splitting the prize pool between players. A person either wins the round or is eliminated during the round or is entered back in during a rollover.</li>
+</ul>
+<ul style="padding-left:20px;line-height:1.55">
+<li>If everyone remaining loses in a round, all are eliminated and a rollover occurs. With a rollover, every player must pay a further €20 so the prize is boosted. A player can choose not to take part in the rollover if they do not want to pay extra.</li>
+<li>Cup matches, postponed fixtures, and abandoned games usually have organiser-specific handling.</li>
+</ul>
+<p class="muted"><strong>Example:</strong> Week 1 you pick Arsenal and they win; Week 2 you must select another team, such as Liverpool.</p>
+<button id="rulesClose" type="button" style="margin-top:8px">Close</button>
+</div>
+</div>
 <div id="modalOverlay" class="modal-overlay hidden">
 <div class="modal-card">
 <p id="modalMessage"></p>
@@ -129,6 +151,14 @@ const TABLE="game_state_lms";
 const SEASON="2026-27";
 let state=null, me=null, isAdmin=false, countdownTimer=null;
 
+(function(){
+ const ov=document.getElementById("rulesOverlay");
+ const open=()=>ov.classList.remove("hidden"),close=()=>ov.classList.add("hidden");
+ document.getElementById("rulesButton").addEventListener("click",open);
+ document.getElementById("rulesClose").addEventListener("click",close);
+ ov.addEventListener("click",e=>{if(e.target===ov)close()});
+ document.addEventListener("keydown",e=>{if(e.key==="Escape")close()});
+})();
 const $=id=>document.getElementById(id);
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function customPrompt(message,{password=false,maxLength=null,validate=null}={}){
@@ -341,6 +371,22 @@ async function api(method="GET",body=null){
    const resetAt=typeof state.teamsResetAtRound==="number"?state.teamsResetAtRound:0;
    if(p.history.some(h=>h.round>resetAt&&h.team===body.team)) throw new Error(`${p.name} has already used ${body.team}.`);
    state.currentPicks=state.currentPicks||{}; state.currentPicks[p.name]=body.team;
+   if(state.autoAssigned&&state.autoAssigned.round===state.round) state.autoAssigned.players=state.autoAssigned.players.filter(n=>n!==p.name);
+ } else if(body.action==="autoAssignDefaults"){
+   // Once the round has locked, any alive player who never picked is given the
+   // first team (alphabetically) they haven't already used. Safe to run many
+   // times: it only fills in missing picks, and only after the lock passes.
+   if(state.winner) throw new Error("The game is finished.");
+   if(!state.lock?.iso||Date.now()<new Date(state.lock.iso).getTime()) throw new Error("The round hasn't locked yet.");
+   const resetAt=typeof state.teamsResetAtRound==="number"?state.teamsResetAtRound:0;
+   state.currentPicks=state.currentPicks||{};
+   const assigned=(state.autoAssigned&&state.autoAssigned.round===state.round)?state.autoAssigned.players:[];
+   state.players.filter(p=>p.alive&&!state.currentPicks[p.name]).forEach(p=>{
+     const used=p.history.filter(h=>h.round>resetAt).map(h=>h.team);
+     const team=[...TEAMS].sort((a,b)=>a.localeCompare(b)).find(t=>!used.includes(t));
+     if(team){state.currentPicks[p.name]=team;assigned.push(p.name)}
+   });
+   state.autoAssigned={round:state.round,players:assigned};
  } else if(body.action==="setLock"){
    state.lock={matchday:body.matchday,iso:body.iso,source:body.source};
  } else if(body.action==="startNewGame"){
@@ -420,7 +466,7 @@ async function api(method="GET",body=null){
    if(survivors.length===1&&!wasWipeout) resultsText+=`🏆 ${survivors[0]} wins €${state.pot}!`;
    else if(wasWipeout) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, pot rolls over to €${state.pot}.\n\nALIVE:\n${state.players.map(p=>p.name).sort().join("\n")}`;
    else resultsText+=`STILL ALIVE:\n${survivors.join("\n")}`;
-   resultsText+=`\n\nhttps://last-man-standing.vercel.app/`;
+   resultsText+=`\n\nhttps://lasttwatstanding.vercel.app/`;
    state.lastResultsAnnouncement={round:last.round,text:resultsText};
  } else if(body.action==="resolve"){
    const active=state.players.filter(p=>p.alive);
@@ -469,7 +515,7 @@ async function api(method="GET",body=null){
    if(state.winner) resultsText+=`🏆 ${state.winner} wins €${state.pot}!`;
    else if(wipedOut) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, pot rolls over to €${state.pot}.\n\nALIVE:\n${stillAlive.join("\n")}`;
    else resultsText+=`STILL ALIVE:\n${stillAlive.join("\n")}`;
-   resultsText+=`\n\nhttps://last-man-standing.vercel.app/`;
+   resultsText+=`\n\nhttps://lasttwatstanding.vercel.app/`;
    state.lastResultsAnnouncement={round:resolvedRound,text:resultsText};
  } else if(body.action==="undoLastResolve"){
    const snap=state.lastResolveSnapshot;
@@ -566,6 +612,15 @@ async function enterAs(name,admin){
    render();
  }catch(e){$("loginMsg").textContent=e.message}
 }
+let autoAssignTried=null;
+async function maybeAutoAssign(){
+ if(!state||state.winner||!state.lock?.iso||Date.now()<new Date(state.lock.iso).getTime()) return;
+ if(!state.players.some(p=>p.alive&&!state.currentPicks?.[p.name])) return;
+ const key=state.round+"|"+state.lock.iso;
+ if(autoAssignTried===key) return;
+ autoAssignTried=key;
+ try{state=await api("POST",{action:"autoAssignDefaults"});render()}catch(e){/* will retry on next page load */}
+}
 function render(){
  $("round").textContent=state.round;
  $("alive").textContent=state.players.filter(p=>p.alive).length;
@@ -609,6 +664,7 @@ function render(){
  }
  if(isAdmin) renderAdmin();
  renderHistory();
+ maybeAutoAssign();
 }
 async function startNextGameFlow(){
      const suggested=state.players.length*20;
@@ -640,7 +696,7 @@ function renderAdmin(){
    $("newGameArea").innerHTML=`<div class="notice" style="margin-bottom:15px"><strong>${esc(state.winner)}</strong> won the game (round ${state.round}). Start the next game to reinstate everyone, set a new pot and open the next round.<br><button type="button" id="startNewGameBtn" style="margin-top:8px">Start next game</button></div>`;
    $("startNewGameBtn").addEventListener("click",startNextGameFlow);
  } else $("newGameArea").innerHTML="";
- $("adminResults").innerHTML=active.map(p=>`<div class="pick-row"><div><strong>${esc(p.name)}</strong><br><span class="small muted">${esc(state.currentPicks?.[p.name]||"NO PICK")}</span><br><button type="button" class="secondary set-pick-btn" data-setpick="${esc(p.name)}" style="min-height:32px;padding:4px 10px;font-size:12px;margin-top:4px;width:auto">${state.currentPicks?.[p.name]?"Change pick":"Set pick"}</button></div><select data-player="${esc(p.name)}"><option value="win">Win — survive</option><option value="draw">Draw — eliminate</option><option value="loss">Loss — eliminate</option></select></div>`).join("")||"<div class='notice'>No active players.</div>";
+ $("adminResults").innerHTML=active.map(p=>`<div class="pick-row"><div><strong>${esc(p.name)}</strong><br><span class="small muted">${esc(state.currentPicks?.[p.name]||"NO PICK")}${(state.autoAssigned?.round===state.round&&state.autoAssigned.players.includes(p.name))?" (auto-assigned)":""}</span><br><button type="button" class="secondary set-pick-btn" data-setpick="${esc(p.name)}" style="min-height:32px;padding:4px 10px;font-size:12px;margin-top:4px;width:auto">${state.currentPicks?.[p.name]?"Change pick":"Set pick"}</button></div><select data-player="${esc(p.name)}"><option value="win">Win — survive</option><option value="draw">Draw — eliminate</option><option value="loss">Loss — eliminate</option></select></div>`).join("")||"<div class='notice'>No active players.</div>";
  document.querySelectorAll("[data-setpick]").forEach(btn=>btn.addEventListener("click",async()=>{
    const name=btn.dataset.setpick;
    const p=state.players.find(x=>x.name===name);
@@ -807,7 +863,7 @@ $("shareStandingsBtn").addEventListener("click",()=>{
  let text=`Current standings — Round ${state.round}:\n\n`;
  text+=`STILL ALIVE:\n${alive.join("\n")||"None"}\n\n`;
  text+=`ELIMINATED:\n${eliminated.join("\n")||"None yet"}`;
- text+=`\n\nhttps://last-man-standing.vercel.app/`;
+ text+=`\n\nhttps://lasttwatstanding.vercel.app/`;
  window.open("https://wa.me/?text="+encodeURIComponent(text),"_blank");
 });
 $("resolve").addEventListener("click",async()=>{
