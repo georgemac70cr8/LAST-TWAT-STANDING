@@ -259,6 +259,24 @@ function ukTimeToUTC(dateStr,timeStr){
 }
 // Fetches the free openfootball fixtures feed and returns the earliest kickoff
 // (as a UTC Date) among all matches in the given matchday for the current season.
+// The free openfootball feed only carries placeholder times (often 3pm) for
+// matches the broadcasters have moved to Friday, early Saturday, etc. ESPN's
+// scoreboard carries the real kickoff times, so look at the two days before
+// the feed's earliest date and use any earlier real kickoff found there.
+async function refineKickoffWithEspn(earliest){
+  try{
+    const base="https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard";
+    const fmt=d=>`${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,"0")}${String(d.getUTCDate()).padStart(2,"0")}`;
+    const days=[2,1,0].map(n=>fmt(new Date(earliest.getTime()-n*86400000)));
+    const results=await Promise.all(days.map(d=>fetch(`${base}?dates=${d}&limit=200`,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)));
+    let best=earliest;
+    for(const data of results) for(const ev of (data?.events||[])){
+      const t=ev?.date?new Date(ev.date):null;
+      if(t&&!isNaN(t)&&t<best) best=t;
+    }
+    return best;
+  }catch{return earliest}
+}
 async function fetchMatchdayKickoff(matchday){
   const url=`https://raw.githubusercontent.com/openfootball/football.json/master/${SEASON}/en.1.json`;
   let res;
@@ -274,7 +292,7 @@ async function fetchMatchdayKickoff(matchday){
     if(!earliest||dt<earliest) earliest=dt;
   }
   if(!earliest) throw new Error("Fixtures were found but had no dates. Set the lock time manually instead.");
-  return earliest;
+  return await refineKickoffWithEspn(earliest);
 }
 // Finds the next match week whose first kickoff is still in the future.
 async function fetchNextUpcomingMatchday(){
@@ -294,6 +312,7 @@ async function fetchNextUpcomingMatchday(){
   for(const n in firstKick){
     if(firstKick[n].getTime()>Date.now()&&(!best||firstKick[n]<best.kickoff)) best={matchday:Number(n),kickoff:firstKick[n]};
   }
+  if(best) best.kickoff=await refineKickoffWithEspn(best.kickoff);
   return best;
 }
 function fmtKickoff(d){return d.toLocaleString(undefined,{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}
