@@ -201,6 +201,9 @@ let state=null, me=null, isAdmin=false, countdownTimer=null;
  ov.addEventListener("click",e=>{if(e.target===ov)close()});
  document.addEventListener("keydown",e=>{if(e.key==="Escape")close()});
 })();
+// Country flag shown next to each player's name. Names not listed (e.g. Guest) get no flag.
+const FLAG_BY_PLAYER={"bally":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","bill mac":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","conrad":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","dazza":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","duncan":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","george":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","iain":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","jimmy":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","jock":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","lucy":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","shaunagh":"🇮🇪","simon":"🏴󠁧󠁢󠁷󠁬󠁳󠁿"};
+function flagFor(name){return FLAG_BY_PLAYER[String(name||"").trim().toLowerCase()]||""}
 const $=id=>document.getElementById(id);
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function customPrompt(message,{password=false,maxLength=null,validate=null}={}){
@@ -642,7 +645,7 @@ async function renderLogin(){
    $("playerChoices").innerHTML=[...loginState.players].sort((a,b)=>a.name.localeCompare(b.name)).map(player=>{
      const n=player.name;
      const eliminated=!player.alive;
-     return `<button type="button" class="player-button${eliminated?" eliminated-player":""}" data-name="${esc(n)}">${esc(n)}${eliminated?" · ELIMINATED":""}</button>`;
+     return `<button type="button" class="player-button${eliminated?" eliminated-player":""}" data-name="${esc(n)}">${flagFor(n)} ${esc(n)}${eliminated?" · ELIMINATED":""}</button>`;
    }).join("")+`<button type="button" id="adminButton" class="secondary" style="margin-top:12px">Administrator</button>`;
  }catch(e){$("loginMsg").textContent=e.message;return}
  document.querySelectorAll("[data-name]").forEach(b=>b.addEventListener("click",()=>handlePlayerLogin(b.dataset.name)));
@@ -707,16 +710,16 @@ function render(){
    const roundCells=roundsToShow.map(r=>{const h=p.history.find(x=>x.round===r);return `<td>${esc(h?.team||"—")}</td>`;}).join("");
    const currentPick=state.currentPicks?.[p.name]||"—";
    const cur=isAdmin||isLocked()||p.name===me?currentPick:"—";
-   return `<tr><td><strong>${esc(p.name)}</strong></td><td class="${p.alive?"alive":"out"}">${p.alive?"ALIVE":"ELIMINATED"}</td>${roundCells}<td>${esc(cur)}</td></tr>`;
+   return `<tr><td><strong>${flagFor(p.name)} ${esc(p.name)}</strong></td><td class="${p.alive?"alive":"out"}">${p.alive?"ALIVE":"ELIMINATED"}</td>${roundCells}<td>${esc(cur)}</td></tr>`;
  }).join("")+"</tbody></table></div>";
 
  const p=state.players.find(x=>x.name.toLowerCase()===String(me).toLowerCase());
  if(p){
    $("playerHeading").textContent=`Round ${state.round} selection`;
    $("savePick").textContent=`Save Round ${state.round} Selection`;
-   $("myStatus").innerHTML=`<p><strong>${esc(p.name)}</strong> · <span class="${p.alive?"alive":"out"}">${p.alive?"ALIVE":"ELIMINATED"}</span></p>`;
+   $("myStatus").innerHTML=`<p><strong>${flagFor(p.name)} ${esc(p.name)}</strong> · <span class="${p.alive?"alive":"out"}">${p.alive?"ALIVE":"ELIMINATED"}</span></p>`;
    if(!p.alive){$("pickArea").innerHTML="<div class='notice'>You are eliminated from the game.</div>";$("savePick").classList.add("hidden");}
-   else if(state.winner){$("pickArea").innerHTML=`<div class='winner'>🏆 ${esc(state.winner)} wins £${state.pot}</div>`;$("savePick").classList.add("hidden");}
+   else if(state.winner){$("pickArea").innerHTML=`<div class='winner'>🏆 ${flagFor(state.winner)} ${esc(state.winner)} wins £${state.pot}</div>`;$("savePick").classList.add("hidden");}
    else if(isLocked()){
      $("pickArea").innerHTML="<div class='notice'>Picks are locked for this round — the first game has kicked off.</div>";
      $("savePick").classList.add("hidden");
@@ -763,7 +766,7 @@ function renderAdmin(){
    $("newGameArea").innerHTML=`<div class="notice" style="margin-bottom:15px"><strong>${esc(state.winner)}</strong> won the game (round ${state.round}). Start the next game to reinstate everyone, set a new pot and open the next round.<br><button type="button" id="startNewGameBtn" style="margin-top:8px">Start next game</button></div>`;
    $("startNewGameBtn").addEventListener("click",startNextGameFlow);
  } else $("newGameArea").innerHTML="";
- $("adminResults").innerHTML=active.map(p=>`<div class="pick-row"><div><strong>${esc(p.name)}</strong><br><span class="small muted">${esc(state.currentPicks?.[p.name]||"NO PICK")}${(state.autoAssigned?.round===state.round&&state.autoAssigned.players.includes(p.name))?" (auto-assigned)":""}</span><br><button type="button" class="secondary set-pick-btn" data-setpick="${esc(p.name)}" style="min-height:32px;padding:4px 10px;font-size:12px;margin-top:4px;width:auto">${state.currentPicks?.[p.name]?"Change pick":"Set pick"}</button></div><select data-player="${esc(p.name)}"><option value="win">Win — survive</option><option value="draw">Draw — eliminate</option><option value="loss">Loss — eliminate</option></select></div>`).join("")||"<div class='notice'>No active players.</div>";
+ $("adminResults").innerHTML=active.map(p=>`<div class="pick-row"><div><strong>${flagFor(p.name)} ${esc(p.name)}</strong><br><span class="small muted">${esc(state.currentPicks?.[p.name]||"NO PICK")}${(state.autoAssigned?.round===state.round&&state.autoAssigned.players.includes(p.name))?" (auto-assigned)":""}</span><br><button type="button" class="secondary set-pick-btn" data-setpick="${esc(p.name)}" style="min-height:32px;padding:4px 10px;font-size:12px;margin-top:4px;width:auto">${state.currentPicks?.[p.name]?"Change pick":"Set pick"}</button></div><select data-player="${esc(p.name)}"><option value="win">Win — survive</option><option value="draw">Draw — eliminate</option><option value="loss">Loss — eliminate</option></select></div>`).join("")||"<div class='notice'>No active players.</div>";
  document.querySelectorAll("[data-setpick]").forEach(btn=>btn.addEventListener("click",async()=>{
    const name=btn.dataset.setpick;
    const p=state.players.find(x=>x.name===name);
@@ -831,7 +834,7 @@ function renderLockCountdown(){
 }
 function renderHistory(){
  if(!state.history.length){$("historyBody").textContent="No completed rounds yet.";return}
- $("historyBody").innerHTML=state.history.map(r=>`<div style="margin:10px 0"><strong>Round ${r.round}</strong><table><tbody>${r.results.map(x=>`<tr><td>${esc(x.player)}</td><td>${esc(x.team)}</td><td>${x.result==="win"?"✅ WIN":"❌ "+x.result.toUpperCase()}</td></tr>`).join("")}</tbody></table></div>`).join("");
+ $("historyBody").innerHTML=state.history.map(r=>`<div style="margin:10px 0"><strong>Round ${r.round}</strong><table><tbody>${r.results.map(x=>`<tr><td>${flagFor(x.player)} ${esc(x.player)}</td><td>${esc(x.team)}</td><td>${x.result==="win"?"✅ WIN":"❌ "+x.result.toUpperCase()}</td></tr>`).join("")}</tbody></table></div>`).join("");
 }
 $("savePick").addEventListener("click",async()=>{
  const team=$("team")?.value;if(!team){$("pickMsg").textContent="Select a team first.";return}
