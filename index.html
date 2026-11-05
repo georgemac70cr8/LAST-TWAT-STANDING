@@ -812,7 +812,17 @@ function renderAdmin(){
  } else {
    $("lockStatus").textContent="No lock time set for this round yet.";
  }
- if(state.pendingAnnouncement?.round===state.round&&state.pendingAnnouncement.text){
+ if(isLocked()&&!state.winner&&state.players.some(p=>p.alive&&state.currentPicks?.[p.name])){
+   // Built here (not by the server function) so it can mark automatic picks.
+   const autoNames=(state.autoAssigned&&state.autoAssigned.round===state.round)?state.autoAssigned.players:[];
+   const lines=state.players.filter(p=>p.alive).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>{
+     const t=state.currentPicks?.[p.name];
+     return t?`${p.name} - ${t}${autoNames.includes(p.name)?" (auto select)":""}`:`${p.name} - NO PICK`;
+   });
+   const text=`Round ${state.round} picks are locked:\n\n${lines.join("\n")}\n\nhttps://lasttwatstanding.vercel.app/`;
+   const waUrl="https://wa.me/?text="+encodeURIComponent(text);
+   $("announceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Round ${state.round} picks are locked and ready to share.<br><a href="${waUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send to WhatsApp</button></a></div>`;
+ } else if(state.pendingAnnouncement?.round===state.round&&state.pendingAnnouncement.text){
    const waUrl="https://wa.me/?text="+encodeURIComponent(state.pendingAnnouncement.text);
    $("announceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Round ${state.round} picks are locked and ready to share.<br><a href="${waUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send to WhatsApp</button></a></div>`;
  } else {
