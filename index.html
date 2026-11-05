@@ -221,7 +221,17 @@ let state=null, me=null, isAdmin=false, countdownTimer=null;
 })();
 // Country flag shown next to each player's name. Names not listed (e.g. Guest) get no flag.
 const FLAG_BY_PLAYER={"bally":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","bill mac":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","conrad":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","dazza":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","duncan":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","george":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","iain":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","jimmy":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","jock":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","lucy":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","shaunagh":"🇮🇪","simon":"🏴󠁧󠁢󠁷󠁬󠁳󠁿"};
-function flagFor(name){return FLAG_BY_PLAYER[String(name||"").trim().toLowerCase()]||""}
+// Countries the admin can type when adding a player (names or 2-letter codes).
+const COUNTRY_FLAGS={"england": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "wales": "🏴󠁧󠁢󠁷󠁬󠁳󠁿", "northern ireland": "🇬🇧", "uk": "🇬🇧", "united kingdom": "🇬🇧", "great britain": "🇬🇧", "britain": "🇬🇧", "ireland": "🇮🇪", "republic of ireland": "🇮🇪", "eire": "🇮🇪", "malta": "🇲🇹", "usa": "🇺🇸", "us": "🇺🇸", "united states": "🇺🇸", "america": "🇺🇸", "australia": "🇦🇺", "new zealand": "🇳🇿", "canada": "🇨🇦", "spain": "🇪🇸", "france": "🇫🇷", "germany": "🇩🇪", "italy": "🇮🇹", "portugal": "🇵🇹", "netherlands": "🇳🇱", "holland": "🇳🇱", "belgium": "🇧🇪", "sweden": "🇸🇪", "norway": "🇳🇴", "denmark": "🇩🇰", "finland": "🇫🇮", "iceland": "🇮🇸", "poland": "🇵🇱", "greece": "🇬🇷", "turkey": "🇹🇷", "switzerland": "🇨🇭", "austria": "🇦🇹", "india": "🇮🇳", "pakistan": "🇵🇰", "south africa": "🇿🇦", "nigeria": "🇳🇬", "ghana": "🇬🇭", "kenya": "🇰🇪", "brazil": "🇧🇷", "argentina": "🇦🇷", "mexico": "🇲🇽", "japan": "🇯🇵", "china": "🇨🇳", "singapore": "🇸🇬", "uae": "🇦🇪", "united arab emirates": "🇦🇪", "dubai": "🇦🇪", "thailand": "🇹🇭", "cyprus": "🇨🇾", "croatia": "🇭🇷", "czech republic": "🇨🇿", "czechia": "🇨🇿", "hungary": "🇭🇺", "romania": "🇷🇴", "ukraine": "🇺🇦", "israel": "🇮🇱", "egypt": "🇪🇬", "uruguay": "🇺🇾", "chile": "🇨🇱", "colombia": "🇨🇴", "jamaica": "🇯🇲", "lithuania": "🇱🇹", "latvia": "🇱🇻", "estonia": "🇪🇪", "bulgaria": "🇧🇬", "serbia": "🇷🇸", "slovakia": "🇸🇰", "slovenia": "🇸🇮", "philippines": "🇵🇭", "malaysia": "🇲🇾", "indonesia": "🇮🇩", "south korea": "🇰🇷", "hong kong": "🇭🇰", "zimbabwe": "🇿🇼", "zambia": "🇿🇲", "morocco": "🇲🇦", "tunisia": "🇹🇳", "qatar": "🇶🇦", "saudi arabia": "🇸🇦"};
+function countryToFlag(input){
+  const t=String(input||"").trim().toLowerCase();
+  if(!t) return "";
+  if(COUNTRY_FLAGS[t]) return COUNTRY_FLAGS[t];
+  if(/^[a-z]{2}$/.test(t)) return String.fromCodePoint(...[...t.toUpperCase()].map(c=>0x1F1E6+c.charCodeAt(0)-65));
+  return null;
+}
+const PLAYER_COUNTRY={};
+function flagFor(name){const k=String(name||"").trim().toLowerCase();return PLAYER_COUNTRY[k]||FLAG_BY_PLAYER[k]||""}
 const $=id=>document.getElementById(id);
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function customPrompt(message,{password=false,maxLength=null,validate=null}={}){
@@ -430,6 +440,7 @@ async function api(method="GET",body=null){
    const game = row && row.data ? row.data : row;
    if(!game || !Array.isArray(game.players)) throw new Error("Supabase returned an invalid game state. Expected a game_state row containing a players array.");
    if(typeof game.pot!=="number") game.pot=180;
+   game.players.forEach(p=>{const f=p.country?countryToFlag(p.country):"";if(f)PLAYER_COUNTRY[String(p.name).toLowerCase()]=f});
    return game;
  }
  let state=await api("GET");
@@ -526,7 +537,8 @@ async function api(method="GET",body=null){
    if(!name) throw new Error("Enter a name for the new player.");
    if(name.length>20) throw new Error("Names can be at most 20 characters.");
    if(state.players.some(p=>p.name.toLowerCase()===name.toLowerCase())) throw new Error(`${name} is already in the game.`);
-   state.players.push({name,alive:true,history:[]});
+   const country=String(body.country||"").trim().slice(0,30);
+   state.players.push(country?{name,alive:true,history:[],country}:{name,alive:true,history:[]});
  } else if(body.action==="removePlayer"){
    // Removes a player from the game entirely — for someone dropping out.
    // They disappear from Standings, admin's pick-entry list, and future
@@ -710,6 +722,7 @@ async function maybeAutoAssign(){
  try{state=await api("POST",{action:"autoAssignDefaults"});render()}catch(e){/* will retry on next page load */}
 }
 function render(){
+ state.players.forEach(p=>{const f=p.country?countryToFlag(p.country):"";if(f)PLAYER_COUNTRY[String(p.name).toLowerCase()]=f});
  $("round").textContent=state.round;
  $("alive").textContent=state.players.filter(p=>p.alive).length;
  $("pot").textContent="£"+(typeof state.pot==="number"?state.pot:180);
@@ -951,8 +964,12 @@ $("removePlayerBtn").addEventListener("click",async()=>{
    try{state=await api("POST",{action:"removePlayer",player:existing.name});$("adminMsg").textContent=`${existing.name} removed from the game.`;render()}catch(e){$("adminMsg").textContent=e.message}
  } else {
    const newName=typed.toUpperCase();
-   if(!confirm(`"${newName}" isn't a current player. Add ${newName} as a new player? They join alive for round ${state.round} with every team available, and set their own PIN the first time they log in.`)) return;
-   try{state=await api("POST",{action:"addPlayer",player:newName});$("adminMsg").textContent=`${newName} added to the game. Their pick for round ${state.round} can be set with the "Set pick" button below.`;render()}catch(e){$("adminMsg").textContent=e.message}
+   const countryIn=await customPrompt(`Which country is ${newName} from? This sets the flag next to their name. Try England, Scotland, Wales, Ireland, Malta, USA, Australia... or a 2-letter code like FR. Leave blank for no flag.`,{validate:v=>(v.trim()===""||countryToFlag(v)!==null)?null:"I don't recognise that country. Try its full name or 2-letter code, or leave blank."});
+   if(countryIn===null) return;
+   const country=countryIn.trim();
+   const flagPreview=country?countryToFlag(country):"";
+   if(!confirm(`"${newName}" isn't a current player. Add ${newName} ${flagPreview} as a new player? They join alive for round ${state.round} with every team available, and set their own PIN the first time they log in.`)) return;
+   try{state=await api("POST",{action:"addPlayer",player:newName,country});$("adminMsg").textContent=`${newName} added to the game. Their pick for round ${state.round} can be set with the "Set pick" button below.`;render()}catch(e){$("adminMsg").textContent=e.message}
  }
 });
 $("shareStandingsBtn").addEventListener("click",()=>{
