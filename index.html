@@ -39,7 +39,8 @@ table{width:100%;border-collapse:collapse}.table-wrap{overflow-x:auto;-webkit-ov
 h1 .w1{color:#ff9f43}h1 .w2{color:#ff6b9d}h1 .w3{color:#c77dff}
 .player-button.picked{background:#e08a3c;border-color:#e08a3c;color:#1a0f08;font-weight:700}
 .pick-intro{margin:2px 0 12px;font-size:15px;color:#f5f7f2}
-.hero-fill{position:absolute;left:380px;right:170px;top:2px;bottom:6px;display:flex;align-items:center;justify-content:center;pointer-events:none}@media(max-width:900px){.hero-fill{display:none}}
+.hero-fill{position:absolute;left:380px;right:170px;top:2px;bottom:6px;display:flex;align-items:center;justify-content:center;pointer-events:none}@media(max-width:760px){.hero-fill{display:none}}@media(max-width:560px){.hero-fill{display:flex;left:104px;right:136px;top:10px;bottom:auto;height:78px}}
+#playerChoices.all-picked .player-button.picked{background:#1f6f43;border-color:#1f6f43;color:#fff}
 </style>
 </head>
 <body>
@@ -677,6 +678,8 @@ async function renderLogin(){
  try{
    const loginState=await api("GET");
    $("potLabel").textContent="£"+(typeof loginState.pot==="number"?loginState.pot:180)+" First Prize";
+   const aliveNames=loginState.players.filter(p=>p.alive).map(p=>p.name);
+   $("playerChoices").classList.toggle("all-picked",aliveNames.length>0&&aliveNames.every(n=>loginState.currentPicks&&loginState.currentPicks[n]));
    $("playerChoices").innerHTML=[...loginState.players].sort((a,b)=>a.name.localeCompare(b.name)).map(player=>{
      const n=player.name;
      const eliminated=!player.alive;
