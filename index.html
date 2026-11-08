@@ -729,7 +729,7 @@ function liveBadge(team){
  return `<br><span class="live live-${h.live}">${h.live==="win"?"WINNING":h.live==="draw"?"DRAWING":"LOSING"} ${sc}${h.clock?" · "+esc(h.clock):""}</span>`;
 }
 async function refreshLive(){
- if(LIVE_BUSY||!state||state.winner||!isLocked()) return;
+ if(LIVE_BUSY||isAdmin||!state||state.winner||!isLocked()) return;
  if(Date.now()-LIVE_AT<45000) return;
  LIVE_BUSY=true;
  try{const r=await fetchFinalScores();LIVE_AT=Date.now();const before=JSON.stringify(Object.values(LIVE.byTeam||{}).map(x=>[x.state,x.own,x.opp,x.clock]));LIVE=r;const after=JSON.stringify(Object.values(r.byTeam).map(x=>[x.state,x.own,x.opp,x.clock]));if(before!==after) render();}catch(e){}
