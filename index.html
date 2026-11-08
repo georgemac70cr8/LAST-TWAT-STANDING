@@ -410,10 +410,10 @@ async function loadFixtures(){
      return {home,away,kickoff};
    }).sort((a,b)=>(a.kickoff?.getTime()||0)-(b.kickoff?.getTime()||0));
    // Fixture times are shown in each player's own timezone: George and Shaunagh
-   // in Malta, Dazza in Sydney, Joycey in Central Time, everyone else in UK time.
+   // in Malta, Dazza in Sydney, Joycey in Central Time, Iain in Crete, everyone else in UK time.
    // (The admin view just uses the device's own timezone.)
    const who=(typeof me==="string")?me.toLowerCase():"";
-   const TZ_BY_PLAYER={george:["Europe/Malta","Malta time"],shaunagh:["Europe/Malta","Malta time"],dazza:["Australia/Sydney","Sydney time"],joycey:["America/Chicago","Central Time"]};
+   const TZ_BY_PLAYER={george:["Europe/Malta","Malta time"],shaunagh:["Europe/Malta","Malta time"],dazza:["Australia/Sydney","Sydney time"],joycey:["America/Chicago","Central Time"],iain:["Europe/Athens","Crete time"]};
    const tzInfo=who==="admin"?null:(TZ_BY_PLAYER[who]||["Europe/London","UK time"]);
    const tz=tzInfo?tzInfo[0]:undefined;
    const groups=[];
