@@ -83,7 +83,7 @@ h1 .w1{color:#ff9f43}h1 .w2{color:#ff6b9d}h1 .w3{color:#c77dff}
 </section>
 
 <section id="playerView" class="card">
-<h2 id="playerHeading">Round 3 selection</h2>
+<h2 id="playerHeading">Game Week 3 selection</h2>
 <p class="pick-intro">Choose one team that you think will win this game week.</p>
 <div id="myStatus"></div>
 <div id="pickArea"></div>
@@ -136,8 +136,8 @@ h1 .w1{color:#ff9f43}h1 .w2{color:#ff6b9d}h1 .w3{color:#c77dff}
 </section>
 
 <section class="card">
-<h2>Round history</h2>
-<div id="historyBody" class="muted">No completed rounds yet.</div>
+<h2>Game Week history</h2>
+<div id="historyBody" class="muted">No completed game weeks yet.</div>
 </section>
 </section>
 </div>
@@ -467,7 +467,7 @@ async function api(method="GET",body=null){
    if(!/^\d{4}$/.test(String(body.pin))) throw new Error("PIN must be exactly 4 digits.");
    p.pin=String(body.pin);
  } else if(body.action==="pick"){
-   if(state.lock?.iso && Date.now()>=new Date(state.lock.iso).getTime()) throw new Error("Picks are locked for this round — the first game has kicked off.");
+   if(state.lock?.iso && Date.now()>=new Date(state.lock.iso).getTime()) throw new Error("Picks are locked for this game week — the first game has kicked off.");
    const p=state.players.find(x=>x.name.toLowerCase()===String(body.player).toLowerCase());
    if(!p||!p.alive) throw new Error("Player is not active.");
    if(!TEAMS.includes(body.team)) throw new Error("Invalid Premier League team.");
@@ -576,8 +576,8 @@ async function api(method="GET",body=null){
    const eliminated=last.results.filter(x=>x.result!=="win").map(x=>x.player).sort();
    const wasWipeout=eliminated.length>0&&eliminated.length===last.results.length;
    const survivors=roundActive.filter(n=>!eliminated.includes(n));
-   let resultsText=`Round ${last.round} results:\n\n`;
-   resultsText+=eliminated.length?`ELIMINATED:\n${eliminated.join("\n")}\n\n`:"No eliminations this round!\n\n";
+   let resultsText=`Game Week ${last.round} results:\n\n`;
+   resultsText+=eliminated.length?`ELIMINATED:\n${eliminated.join("\n")}\n\n`:"No eliminations this game week!\n\n";
    if(survivors.length===1&&!wasWipeout) resultsText+=`🏆 ${survivors[0]} wins £${state.pot}!`;
    else if(wasWipeout) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, first prize is boosted to £${state.pot}.\n\nALIVE:\n${state.players.map(p=>p.name).sort().join("\n")}`;
    else resultsText+=`STILL ALIVE:\n${survivors.join("\n")}`;
@@ -625,8 +625,8 @@ async function api(method="GET",body=null){
    }
    const eliminated=results.filter(x=>x.result!=="win").map(x=>x.player).sort();
    const stillAlive=state.players.filter(p=>p.alive).map(p=>p.name).sort();
-   let resultsText=`Round ${resolvedRound} results:\n\n`;
-   resultsText+=eliminated.length?`ELIMINATED:\n${eliminated.join("\n")}\n\n`:"No eliminations this round!\n\n";
+   let resultsText=`Game Week ${resolvedRound} results:\n\n`;
+   resultsText+=eliminated.length?`ELIMINATED:\n${eliminated.join("\n")}\n\n`:"No eliminations this game week!\n\n";
    if(state.winner) resultsText+=`🏆 ${state.winner} wins £${state.pot}!`;
    else if(wipedOut) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, first prize is boosted to £${state.pot}.\n\nALIVE:\n${stillAlive.join("\n")}`;
    else resultsText+=`STILL ALIVE:\n${stillAlive.join("\n")}`;
@@ -805,7 +805,7 @@ function render(){
  const resetAt=typeof state.teamsResetAtRound==="number"?state.teamsResetAtRound:0;
  const roundsToShow=[];
  for(let r=resetAt+1;r<=roundsPlayed;r++) roundsToShow.push(r);
- const roundHeaders=roundsToShow.map(r=>`<th>Round ${r}</th>`).join("");
+ const roundHeaders=roundsToShow.map(r=>`<th>Game Week ${r}</th>`).join("");
  $("standings").innerHTML="<div class=\"table-wrap\"><table><thead><tr><th>Player</th><th>Status</th>"+roundHeaders+"<th>Current</th></tr></thead><tbody>"+
  sorted.map(p=>{
    const roundCells=roundsToShow.map(r=>{const h=p.history.find(x=>x.round===r);return `<td>${esc(h?.team||"—")}</td>`;}).join("");
@@ -817,20 +817,20 @@ function render(){
  refreshLive();
  const p=state.players.find(x=>x.name.toLowerCase()===String(me).toLowerCase());
  if(p){
-   $("playerHeading").textContent=`Round ${state.round} selection`;
-   $("savePick").textContent=`Save Round ${state.round} Selection`;
+   $("playerHeading").textContent=`Game Week ${state.round} selection`;
+   $("savePick").textContent=`Save Game Week ${state.round} Selection`;
    $("myStatus").innerHTML=`<p><strong>${esc(p.name)} ${flagFor(p.name)}</strong> · <span class="${p.alive?"alive":"out"}">${p.alive?"ALIVE":"ELIMINATED"}</span></p>`;
    if(!p.alive){$("pickArea").innerHTML="<div class='notice'>You are eliminated from the game.</div>";$("savePick").classList.add("hidden");}
    else if(state.winner){$("pickArea").innerHTML=`<div class='winner'>🏆 ${esc(state.winner)} ${flagFor(state.winner)} wins £${state.pot}</div>`;$("savePick").classList.add("hidden");}
    else if(isLocked()){
-     $("pickArea").innerHTML="<div class='notice'>Picks are locked for this round — the first game has kicked off.</div>";
+     $("pickArea").innerHTML="<div class='notice'>Picks are locked for this game week — the first game has kicked off.</div>";
      $("savePick").classList.add("hidden");
    }
    else{
      const resetAt=typeof state.teamsResetAtRound==="number"?state.teamsResetAtRound:0;
      const used=p.history.filter(h=>h.round>resetAt).map(h=>h.team);
      const existing=state.currentPicks?.[p.name]||"";
-     $("pickArea").innerHTML=`<label for="team" class="small muted">Teams you have already used are removed.<br><strong>SELECTIONS STAY HIDDEN FROM OTHER PLAYERS UNTIL THE ROUND LOCKS</strong></label><select id="team" style="width:100%;margin-top:6px"><option value="">Select team</option>${TEAMS.filter(t=>!used.includes(t)).map(t=>`<option value="${esc(t)}" ${t===existing?"selected":""}>${esc(t)}</option>`).join("")}</select>`;
+     $("pickArea").innerHTML=`<label for="team" class="small muted">Teams you have already used are removed.<br><strong>SELECTIONS STAY HIDDEN FROM OTHER PLAYERS UNTIL THE GAME WEEK LOCKS</strong></label><select id="team" style="width:100%;margin-top:6px"><option value="">Select team</option>${TEAMS.filter(t=>!used.includes(t)).map(t=>`<option value="${esc(t)}" ${t===existing?"selected":""}>${esc(t)}</option>`).join("")}</select>`;
      $("savePick").classList.remove("hidden");
    }
  }
@@ -917,7 +917,7 @@ function renderAdmin(){
      const t=state.currentPicks?.[p.name];
      return t?`${p.name} - ${t}${autoNames.includes(p.name)?" (auto select)":""}`:`${p.name} - NO PICK`;
    });
-   const text=`Round ${state.round} picks are locked:\n\n${lines.join("\n")}\n\nhttps://lasttwatstanding.vercel.app/`;
+   const text=`Game Week ${state.round} picks are locked:\n\n${lines.join("\n")}\n\nhttps://lasttwatstanding.vercel.app/`;
    const waUrl="https://wa.me/?text="+encodeURIComponent(text);
    $("announceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Round ${state.round} picks are locked and ready to share.<br><a href="${waUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send to WhatsApp</button></a></div>`;
  } else if(state.pendingAnnouncement?.round===state.round&&state.pendingAnnouncement.text){
@@ -959,8 +959,8 @@ function renderLockCountdown(){
  }
 }
 function renderHistory(){
- if(!state.history.length){$("historyBody").textContent="No completed rounds yet.";return}
- $("historyBody").innerHTML=state.history.map(r=>`<div style="margin:10px 0"><strong>Round ${r.round}</strong><table><tbody>${[...r.results].sort((a,b)=>String(a.player).localeCompare(String(b.player),undefined,{sensitivity:"base"})).map(x=>`<tr><td>${esc(x.player)} ${flagFor(x.player)}</td><td>${esc(x.team)}</td><td>${x.result==="win"?"✅ WIN":"❌ "+x.result.toUpperCase()}</td></tr>`).join("")}</tbody></table></div>`).join("");
+ if(!state.history.length){$("historyBody").textContent="No completed game weeks yet.";return}
+ $("historyBody").innerHTML=state.history.map(r=>`<div style="margin:10px 0"><strong>Game Week ${r.round}</strong><table><tbody>${[...r.results].sort((a,b)=>String(a.player).localeCompare(String(b.player),undefined,{sensitivity:"base"})).map(x=>`<tr><td>${esc(x.player)} ${flagFor(x.player)}</td><td>${esc(x.team)}</td><td>${x.result==="win"?"✅ WIN":"❌ "+x.result.toUpperCase()}</td></tr>`).join("")}</tbody></table></div>`).join("");
 }
 $("savePick").addEventListener("click",async()=>{
  const team=$("team")?.value;if(!team){$("pickMsg").textContent="Select a team first.";return}
@@ -1060,7 +1060,7 @@ $("removePlayerBtn").addEventListener("click",async()=>{
 $("shareStandingsBtn").addEventListener("click",()=>{
  const alive=state.players.filter(p=>p.alive).map(p=>p.name).sort();
  const eliminated=state.players.filter(p=>!p.alive).map(p=>p.name).sort();
- let text=`Current standings — Round ${state.round}:\n\n`;
+ let text=`Current standings — Game Week ${state.round}:\n\n`;
  text+=`STILL ALIVE:\n${alive.join("\n")||"None"}\n\n`;
  text+=`ELIMINATED:\n${eliminated.join("\n")||"None yet"}`;
  text+=`\n\nhttps://lasttwatstanding.vercel.app/`;
