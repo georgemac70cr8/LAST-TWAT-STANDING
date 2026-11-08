@@ -41,6 +41,8 @@ h1 .w1{color:#ff9f43}h1 .w2{color:#ff6b9d}h1 .w3{color:#c77dff}
 .pick-intro{margin:2px 0 12px;font-size:15px;color:#f5f7f2}
 .hero-fill{position:absolute;left:380px;right:170px;top:2px;bottom:6px;display:flex;align-items:center;justify-content:center;pointer-events:none}@media(max-width:760px){.hero-fill{display:none}}@media(max-width:560px){.hero-fill{display:flex;left:104px;right:136px;top:10px;bottom:auto;height:78px}}
 #playerChoices.all-picked .player-button.picked{background:#1f6f43;border-color:#1f6f43;color:#fff}
+.live{display:inline-block;margin-top:3px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.04em;white-space:nowrap}.live-win{background:rgba(200,245,106,.18);color:#c8f56a}.live-draw{background:rgba(255,196,77,.18);color:#ffc44d}.live-loss{background:rgba(255,99,99,.18);color:#ff7b7b}.live-pre{background:rgba(255,255,255,.08);color:#9fb0aa}
+.risk{color:#ffc44d;font-weight:800}
 </style>
 <link rel="icon" type="image/png" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -123,6 +125,8 @@ h1 .w1{color:#ff9f43}h1 .w2{color:#ff6b9d}h1 .w3{color:#c77dff}
 </div>
 
 <p class="muted">Enter the actual result for every active player's selected team, then resolve the round.</p>
+<button id="autoResults" type="button" class="secondary" style="margin:6px 0 10px">Fill results from final scores</button>
+<p id="autoResultsMsg" class="muted" aria-live="polite"></p>
 <div id="adminResults"></div>
 <button id="resolve" style="margin-top:10px">Resolve Round</button>
 <div id="undoResolveArea"></div>
@@ -679,6 +683,59 @@ async function api(method="GET",body=null){
  if(!r.ok) throw new Error(j?.message||j?.hint||j?.error_description||"Could not save game state.");
  return state;
 }
+async function fetchFinalScores(){
+ const base="https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard";
+ const fmt=d=>`${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,"0")}${String(d.getUTCDate()).padStart(2,"0")}`;
+ const start=state.lock?.iso?new Date(state.lock.iso):new Date(Date.now()-5*86400000);
+ start.setUTCDate(start.getUTCDate()-1);
+ const days=Array.from({length:7},(_,i)=>fmt(new Date(start.getTime()+i*86400000)));
+ const datas=await Promise.all(days.map(d=>fetch(`${base}?dates=${d}&limit=200`,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)));
+ const norm=n=>String(n||"").toLowerCase().replace(/^afc /,"").replace(/ fc$/,"").replace(/&/g,"and").replace(/\s+/g," ").trim();
+ const byTeam={};
+ for(const data of datas) for(const ev of (data?.events||[])){
+   const comp=ev.competitions?.[0];const cs=comp?.competitors||[];
+   if(cs.length!==2) continue;
+   const done=!!(ev.status?.type?.completed||comp?.status?.type?.completed);
+   const sc=cs.map(c=>parseInt(c.score,10));
+   cs.forEach((c,i)=>{
+     const o=1-i;let r=null;
+     if(done&&!isNaN(sc[i])&&!isNaN(sc[o])) r=sc[i]>sc[o]?"win":sc[i]===sc[o]?"draw":"loss";
+     const st=ev.status?.type?.state||comp?.status?.type?.state||(done?"post":"pre");
+     let lr=null;if((st==="in"||st==="post")&&!isNaN(sc[i])&&!isNaN(sc[o])) lr=sc[i]>sc[o]?"win":sc[i]===sc[o]?"draw":"loss";
+     byTeam[norm(c.team?.displayName)]={done,result:r,score:done?`${sc[0]}-${sc[1]}`:"",vs:norm(cs[o].team?.displayName),state:st,live:lr,own:sc[i],opp:sc[o],clock:ev.status?.displayClock||comp?.status?.displayClock||""};
+   });
+ }
+ return {byTeam,norm};
+}
+function statusCell(p,cur){
+ let cls=p.alive?"alive":"out",txt=p.alive?"ALIVE":"ELIMINATED";
+ if(p.alive&&cur&&cur!=="—"&&LIVE.norm&&!state.winner){
+   const h=LIVE.byTeam[LIVE.norm(cur)];
+   if(h&&h.live){
+     if(h.state==="post"&&h.live!=="win"){cls="out";txt="ELIMINATED"}
+     else if(h.state==="in"&&h.live!=="win"){cls="risk";txt="AT RISK"}
+   }
+ }
+ return `<td class="${cls}">${txt}</td>`;
+}
+let LIVE={},LIVE_AT=0,LIVE_BUSY=false;
+function liveBadge(team){
+ const h=LIVE.norm&&team&&LIVE.byTeam[LIVE.norm(team)];
+ if(!h) return "";
+ if(h.state==="pre") return `<br><span class="live live-pre">NOT STARTED</span>`;
+ if(!h.live) return "";
+ const sc=`${h.own}–${h.opp}`;
+ if(h.state==="post") return `<br><span class="live live-${h.live}">${h.live==="win"?"WON":h.live==="draw"?"DREW":"LOST"} ${sc}</span>`;
+ return `<br><span class="live live-${h.live}">${h.live==="win"?"WINNING":h.live==="draw"?"DRAWING":"LOSING"} ${sc}${h.clock?" · "+esc(h.clock):""}</span>`;
+}
+async function refreshLive(){
+ if(LIVE_BUSY||!state||state.winner||!isLocked()) return;
+ if(Date.now()-LIVE_AT<45000) return;
+ LIVE_BUSY=true;
+ try{const r=await fetchFinalScores();LIVE_AT=Date.now();const before=JSON.stringify(Object.values(LIVE.byTeam||{}).map(x=>[x.state,x.own,x.opp,x.clock]));LIVE=r;const after=JSON.stringify(Object.values(r.byTeam).map(x=>[x.state,x.own,x.opp,x.clock]));if(before!==after) render();}catch(e){}
+ LIVE_BUSY=false;
+}
+setInterval(refreshLive,60000);
 async function renderLogin(){
  try{
    const loginState=await api("GET");
@@ -754,9 +811,10 @@ function render(){
    const roundCells=roundsToShow.map(r=>{const h=p.history.find(x=>x.round===r);return `<td>${esc(h?.team||"—")}</td>`;}).join("");
    const currentPick=state.currentPicks?.[p.name]||"—";
    const cur=isAdmin||isLocked()||p.name===me?currentPick:"—";
-   return `<tr><td><strong>${esc(p.name)} ${flagFor(p.name)}</strong></td><td class="${p.alive?"alive":"out"}">${p.alive?"ALIVE":"ELIMINATED"}</td>${roundCells}<td>${esc(cur)}</td></tr>`;
+   return `<tr><td><strong>${esc(p.name)} ${flagFor(p.name)}</strong></td>${statusCell(p,cur)}${roundCells}<td>${esc(cur)}${cur!=="—"&&p.alive?liveBadge(cur):""}</td></tr>`;
  }).join("")+"</tbody></table></div>";
 
+ refreshLive();
  const p=state.players.find(x=>x.name.toLowerCase()===String(me).toLowerCase());
  if(p){
    $("playerHeading").textContent=`Round ${state.round} selection`;
@@ -811,6 +869,20 @@ function renderAdmin(){
    $("startNewGameBtn").addEventListener("click",startNextGameFlow);
  } else $("newGameArea").innerHTML="";
  $("adminResults").innerHTML=active.map(p=>`<div class="pick-row"><div><strong>${esc(p.name)} ${flagFor(p.name)}</strong><br><span class="small muted">${esc(state.currentPicks?.[p.name]||"NO PICK")}${(state.autoAssigned?.round===state.round&&state.autoAssigned.players.includes(p.name))?" (auto-assigned)":""}</span><br><button type="button" class="secondary set-pick-btn" data-setpick="${esc(p.name)}" style="min-height:32px;padding:4px 10px;font-size:12px;margin-top:4px;width:auto">${state.currentPicks?.[p.name]?"Change pick":"Set pick"}</button></div><select data-player="${esc(p.name)}"><option value="win">Win — survive</option><option value="draw">Draw — eliminate</option><option value="loss">Loss — eliminate</option></select></div>`).join("")||"<div class='notice'>No active players.</div>";
+ $("autoResults").onclick=async()=>{
+   const msg=$("autoResultsMsg");msg.textContent="Checking final scores…";
+   try{
+     const {byTeam,norm}=await fetchFinalScores();
+     let filled=0;const waiting=[];
+     document.querySelectorAll("#adminResults select[data-player]").forEach(sel=>{
+       const name=sel.dataset.player;const team=state.currentPicks?.[name];
+       const hit=team?byTeam[norm(team)]:null;
+       if(hit&&hit.done&&hit.result){sel.value=hit.result;filled++}
+       else{waiting.push(`${name} (${team||"no pick"})`);if(![...sel.options].some(x=>x.value==="")){const op=document.createElement("option");op.value="";op.textContent="Not finished yet — set it";sel.insertBefore(op,sel.firstChild)}sel.value=""}
+     });
+     msg.textContent=`Filled ${filled} result${filled===1?"":"s"} from final scores.`+(waiting.length?` Not finished or not found yet: ${waiting.join(", ")}. Set these yourself or try again later.`:" Check them, then press Resolve Round.");
+   }catch(e){msg.textContent="Could not get scores: "+e.message}
+ };
  document.querySelectorAll("[data-setpick]").forEach(btn=>btn.addEventListener("click",async()=>{
    const name=btn.dataset.setpick;
    const p=state.players.find(x=>x.name===name);
