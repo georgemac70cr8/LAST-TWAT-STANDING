@@ -577,7 +577,7 @@ async function api(method="GET",body=null){
    const wasWipeout=eliminated.length>0&&eliminated.length===last.results.length;
    const survivors=roundActive.filter(n=>!eliminated.includes(n));
    let resultsText=`Game Week ${last.round} results:\n\n`;
-   resultsText+=eliminated.length?`🔴 ELIMINATED:\n${eliminated.map(n=>"🔴 "+n).join("\n")}\n\n`:"No eliminations this game week!\n\n";
+   resultsText+=eliminated.length?`ELIMINATED:\n${eliminated.map(n=>"🔴 "+n).join("\n")}\n\n`:"No eliminations this game week!\n\n";
    if(survivors.length===1&&!wasWipeout) resultsText+=`🏆 ${survivors[0]} wins £${state.pot}!`;
    else if(wasWipeout) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, first prize is boosted to £${state.pot}.\n\nALIVE:\n${state.players.map(p=>p.name).sort().join("\n")}`;
    else resultsText+=`STILL ALIVE:\n${survivors.map(n=>"🟢 "+n).join("\n")}`;
@@ -626,7 +626,7 @@ async function api(method="GET",body=null){
    const eliminated=results.filter(x=>x.result!=="win").map(x=>x.player).sort();
    const stillAlive=state.players.filter(p=>p.alive).map(p=>p.name).sort();
    let resultsText=`Game Week ${resolvedRound} results:\n\n`;
-   resultsText+=eliminated.length?`🔴 ELIMINATED:\n${eliminated.map(n=>"🔴 "+n).join("\n")}\n\n`:"No eliminations this game week!\n\n";
+   resultsText+=eliminated.length?`ELIMINATED:\n${eliminated.map(n=>"🔴 "+n).join("\n")}\n\n`:"No eliminations this game week!\n\n";
    if(state.winner) resultsText+=`🏆 ${state.winner} wins £${state.pot}!`;
    else if(wipedOut) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, first prize is boosted to £${state.pot}.\n\nALIVE:\n${stillAlive.join("\n")}`;
    else resultsText+=`STILL ALIVE:\n${stillAlive.map(n=>"🟢 "+n).join("\n")}`;
@@ -740,7 +740,7 @@ setInterval(refreshLive,60000);
 // reword them on the fly so old saved texts go out with the current wording.
 function gwMarkers(t){let mode=null;return String(t||"").split("\n").map(l=>{
  const h=l.replace(/^[🔴🟢]\s*/u,"");
- if(h==="ELIMINATED:"){mode="r";return "🔴 ELIMINATED:"}
+ if(h==="ELIMINATED:"){mode="r";return "ELIMINATED:"}
  if(h==="STILL ALIVE:"){mode="g";return "STILL ALIVE:"}
  if(!l.trim()||/^https?:/.test(l)||/^(🏆|Everyone|No elim|ALIVE:)/.test(l)){mode=null;return l}
  if(mode&&!/^[🔴🟢]/u.test(l)) return (mode==="r"?"🔴 ":"🟢 ")+l;
@@ -1071,7 +1071,7 @@ $("shareStandingsBtn").addEventListener("click",()=>{
  const eliminated=state.players.filter(p=>!p.alive).map(p=>p.name).sort();
  let text=`Current standings — Game Week ${state.round}:\n\n`;
  text+=`STILL ALIVE:\n${alive.map(n=>"🟢 "+n).join("\n")||"None"}\n\n`;
- text+=`🔴 ELIMINATED:\n${eliminated.map(n=>"🔴 "+n).join("\n")||"None yet"}`;
+ text+=`ELIMINATED:\n${eliminated.map(n=>"🔴 "+n).join("\n")||"None yet"}`;
  text+=`\n\nhttps://lasttwatstanding.vercel.app/`;
  window.open("https://wa.me/?text="+encodeURIComponent(text),"_blank");
 });
