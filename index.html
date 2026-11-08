@@ -738,7 +738,14 @@ async function refreshLive(){
 setInterval(refreshLive,60000);
 // Messages saved before the "Game Week" wording change still say "Round";
 // reword them on the fly so old saved texts go out with the current wording.
-function gwWording(t){return String(t||"").replace(/^Round (\d+) /,"Game Week $1 ").replace(/No eliminations this round!/g,"No eliminations this game week!")}
+function gwMarkers(t){let mode=null;return String(t||"").split("\n").map(l=>{
+ const h=l.replace(/^[🔴🟢]\s*/u,"");
+ if(h==="ELIMINATED:"){mode="r";return "🔴 ELIMINATED:"}
+ if(h==="STILL ALIVE:"){mode="g";return "STILL ALIVE:"}
+ if(!l.trim()||/^https?:/.test(l)||/^(🏆|Everyone|No elim|ALIVE:)/.test(l)){mode=null;return l}
+ if(mode&&!/^[🔴🟢]/u.test(l)) return (mode==="r"?"🔴 ":"🟢 ")+l;
+ return l}).join("\n")}
+function gwWording(t){return gwMarkers(String(t||"").replace(/^Round (\d+) /,"Game Week $1 ").replace(/No eliminations this round!/g,"No eliminations this game week!"))}
 async function renderLogin(){
  try{
    const loginState=await api("GET");
