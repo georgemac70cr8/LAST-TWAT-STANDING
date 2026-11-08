@@ -863,7 +863,7 @@ async function startNextGameFlow(){
      }catch(e){$("adminMsg").textContent=e.message}
 }
 function renderAdmin(){
- const active=state.players.filter(p=>p.alive);
+ const active=state.players.filter(p=>p.alive).sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:"base"}));
  if(state.winner){
    $("newGameArea").innerHTML=`<div class="notice" style="margin-bottom:15px"><strong>${esc(state.winner)}</strong> won the game (round ${state.round}). Start the next game to reinstate everyone, set a new pot and open the next round.<br><button type="button" id="startNewGameBtn" style="margin-top:8px">Start next game</button></div>`;
    $("startNewGameBtn").addEventListener("click",startNextGameFlow);
