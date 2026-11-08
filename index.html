@@ -78,7 +78,7 @@ h1 .w1{color:#ff9f43}h1 .w2{color:#ff6b9d}h1 .w3{color:#c77dff}
 </div>
 
 <section class="card">
-<h2>Upcoming Fixtures</h2>
+<h2 id="fixturesTitle">Game Week Fixtures</h2>
 <div id="fixturesList" class="muted">Loading fixtures…</div>
 </section>
 
@@ -378,6 +378,7 @@ async function loadFixtures(){
  lastFixturesKey=key;
  const el=$("fixturesList");
  if(!el) return;
+ const ft=$("fixturesTitle"); if(ft) ft.textContent=`Game Week ${state.round} Fixtures`;
  el.textContent="Loading fixtures…";
  try{
    const base="https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard";
