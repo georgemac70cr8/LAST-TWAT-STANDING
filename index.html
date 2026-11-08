@@ -803,8 +803,7 @@ function render(){
  const sorted=[...state.players].sort((a,b)=>a.name.localeCompare(b.name));
  const roundsPlayed=(state.history||[]).length;
  const resetAt=typeof state.teamsResetAtRound==="number"?state.teamsResetAtRound:0;
- const roundsToShow=[];
- for(let r=resetAt+1;r<=roundsPlayed;r++) roundsToShow.push(r);
+ const roundsToShow=[...new Set((state.history||[]).map(h=>h.round))].filter(r=>r>resetAt).sort((x,y)=>x-y);
  const roundHeaders=roundsToShow.map(r=>`<th>Game Week ${r}</th>`).join("");
  $("standings").innerHTML="<div class=\"table-wrap\"><table><thead><tr><th>Player</th><th>Status</th>"+roundHeaders+"<th>Current</th></tr></thead><tbody>"+
  sorted.map(p=>{
