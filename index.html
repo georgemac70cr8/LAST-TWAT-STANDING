@@ -960,7 +960,7 @@ function renderLockCountdown(){
 }
 function renderHistory(){
  if(!state.history.length){$("historyBody").textContent="No completed rounds yet.";return}
- $("historyBody").innerHTML=state.history.map(r=>`<div style="margin:10px 0"><strong>Round ${r.round}</strong><table><tbody>${r.results.map(x=>`<tr><td>${esc(x.player)} ${flagFor(x.player)}</td><td>${esc(x.team)}</td><td>${x.result==="win"?"✅ WIN":"❌ "+x.result.toUpperCase()}</td></tr>`).join("")}</tbody></table></div>`).join("");
+ $("historyBody").innerHTML=state.history.map(r=>`<div style="margin:10px 0"><strong>Round ${r.round}</strong><table><tbody>${[...r.results].sort((a,b)=>String(a.player).localeCompare(String(b.player),undefined,{sensitivity:"base"})).map(x=>`<tr><td>${esc(x.player)} ${flagFor(x.player)}</td><td>${esc(x.team)}</td><td>${x.result==="win"?"✅ WIN":"❌ "+x.result.toUpperCase()}</td></tr>`).join("")}</tbody></table></div>`).join("");
 }
 $("savePick").addEventListener("click",async()=>{
  const team=$("team")?.value;if(!team){$("pickMsg").textContent="Select a team first.";return}
