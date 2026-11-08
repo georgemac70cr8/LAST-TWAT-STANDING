@@ -102,13 +102,13 @@ h1 .w1{color:#ff9f43}h1 .w2{color:#ff6b9d}h1 .w3{color:#c77dff}
 <div id="newGameArea"></div>
 <button type="button" id="shareStandingsBtn" class="secondary" style="margin-bottom:15px">Send Standings to WhatsApp</button>
 <button type="button" id="resetTeamsBtn" class="secondary" style="margin-bottom:15px">Reset team selections (make all 20 teams available again; after a win, also starts the next game)</button>
-<button type="button" id="setRoundBtn" class="secondary" style="margin-bottom:15px">Set round number</button>
+<button type="button" id="setRoundBtn" class="secondary" style="margin-bottom:15px">Set Game Week number</button>
 <button type="button" id="setPotBtn" class="secondary" style="margin-bottom:15px">Set pot amount</button>
 <button type="button" id="removePlayerBtn" class="secondary" style="margin-bottom:15px">Add or remove a player</button>
 
 <div class="card" style="margin:0 0 15px;padding:16px">
-<h2 style="font-size:18px;margin-bottom:8px">Round lock</h2>
-<p class="muted small">Once locked, players can no longer change their pick for this round. Try auto-detect first (pulls the earliest Premier League kickoff for the match week below from a free public fixtures feed); if it can't find fixtures yet, set the lock time manually.</p>
+<h2 style="font-size:18px;margin-bottom:8px">Game Week lock</h2>
+<p class="muted small">Once locked, players can no longer change their pick for this game week. Try auto-detect first (pulls the earliest Premier League kickoff for the match week below from a free public fixtures feed); if it can't find fixtures yet, set the lock time manually.</p>
 <div class="pick-row" style="grid-template-columns:auto 1fr;margin-top:10px">
 <label for="lockMatchday" class="small muted">Match week #</label>
 <input id="lockMatchday" type="number" min="1" max="38" style="min-height:44px;border-radius:10px;border:1px solid rgba(213,239,220,.18);padding:8px 12px;background:#10211f;color:#eff6f1">
@@ -124,13 +124,13 @@ h1 .w1{color:#ff9f43}h1 .w2{color:#ff6b9d}h1 .w3{color:#c77dff}
 <div id="announceBanner"></div>
 </div>
 
-<p class="muted">Enter the actual result for every active player's selected team, then resolve the round.</p>
+<p class="muted">Enter the actual result for every active player's selected team, then resolve the game week.</p>
 <button id="autoResults" type="button" class="secondary" style="margin:6px 0 10px">Fill results from final scores</button>
 <p id="autoResultsMsg" class="muted" aria-live="polite"></p>
 <div id="adminResults"></div>
-<button id="resolve" style="margin-top:10px">Resolve Round</button>
+<button id="resolve" style="margin-top:10px">Resolve Game Week</button>
 <div id="undoResolveArea"></div>
-<button type="button" id="reopenRoundBtn" class="secondary" style="margin-top:10px">Reopen incomplete round (some games not played yet)</button>
+<button type="button" id="reopenRoundBtn" class="secondary" style="margin-top:10px">Reopen incomplete game week (some games not played yet)</button>
 <p id="adminMsg" class="muted" aria-live="polite"></p>
 <div id="resultsAnnounceBanner"></div>
 </section>
@@ -879,7 +879,7 @@ function renderAdmin(){
        if(hit&&hit.done&&hit.result){sel.value=hit.result;filled++}
        else{waiting.push(`${name} (${team||"no pick"})`);if(![...sel.options].some(x=>x.value==="")){const op=document.createElement("option");op.value="";op.textContent="Not finished yet — set it";sel.insertBefore(op,sel.firstChild)}sel.value=""}
      });
-     msg.textContent=`Filled ${filled} result${filled===1?"":"s"} from final scores.`+(waiting.length?` Not finished or not found yet: ${waiting.join(", ")}. Set these yourself or try again later.`:" Check them, then press Resolve Round.");
+     msg.textContent=`Filled ${filled} result${filled===1?"":"s"} from final scores.`+(waiting.length?` Not finished or not found yet: ${waiting.join(", ")}. Set these yourself or try again later.`:" Check them, then press Resolve Game Week.");
    }catch(e){msg.textContent="Could not get scores: "+e.message}
  };
  document.querySelectorAll("[data-setpick]").forEach(btn=>btn.addEventListener("click",async()=>{
@@ -894,7 +894,7 @@ function renderAdmin(){
    const team=available.find(t=>t.toLowerCase()===entered.trim().toLowerCase());
    try{state=await api("POST",{action:"adminSetPick",player:name,team});$("adminMsg").textContent=`${name}'s pick set to ${team}.`;render()}catch(e){$("adminMsg").textContent=e.message}
  }));
- $("undoResolveArea").innerHTML=state.lastResolveSnapshot?`<div class="notice" style="margin-top:10px">Round ${state.lastResolveSnapshot.round} was just resolved.<br><button type="button" id="undoResolveBtn" class="secondary" style="margin-top:8px">Undo that resolve</button></div>`:"";
+ $("undoResolveArea").innerHTML=state.lastResolveSnapshot?`<div class="notice" style="margin-top:10px">Game Week ${state.lastResolveSnapshot.round} was just resolved.<br><button type="button" id="undoResolveBtn" class="secondary" style="margin-top:8px">Undo that resolve</button></div>`:"";
  if(state.lastResolveSnapshot){
    $("undoResolveBtn").addEventListener("click",async()=>{
      if(!confirm(`Undo the resolve of round ${state.lastResolveSnapshot.round}? This restores every player's alive status, picks, pot, and round number to exactly how they were right before you resolved it.`)) return;
@@ -905,9 +905,9 @@ function renderAdmin(){
  if(state.lock?.iso){
    const when=new Date(state.lock.iso);
    const lockedAlready=Date.now()>=when.getTime();
-   $("lockStatus").innerHTML=`Round ${state.round} locks ${lockedAlready?"<strong class='warning'>(already locked)</strong>":"at"} ${when.toLocaleString(undefined,{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})} <span class="small muted">(match week ${esc(state.lock.matchday)}, set ${state.lock.source==="auto"?"automatically from fixtures":"manually"})</span>`;
+   $("lockStatus").innerHTML=`Game Week ${state.round} locks ${lockedAlready?"<strong class='warning'>(already locked)</strong>":"at"} ${when.toLocaleString(undefined,{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})} <span class="small muted">(match week ${esc(state.lock.matchday)}, set ${state.lock.source==="auto"?"automatically from fixtures":"manually"})</span>`;
  } else {
-   $("lockStatus").textContent="No lock time set for this round yet.";
+   $("lockStatus").textContent="No lock time set for this game week yet.";
  }
  if(isLocked()&&!state.winner&&state.players.some(p=>p.alive&&state.currentPicks?.[p.name])){
    // Built here (not by the server function) so it can mark automatic picks.
@@ -918,16 +918,16 @@ function renderAdmin(){
    });
    const text=`Game Week ${state.round} picks are locked:\n\n${lines.join("\n")}\n\nhttps://lasttwatstanding.vercel.app/`;
    const waUrl="https://wa.me/?text="+encodeURIComponent(text);
-   $("announceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Round ${state.round} picks are locked and ready to share.<br><a href="${waUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send to WhatsApp</button></a></div>`;
+   $("announceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Game Week ${state.round} picks are locked and ready to share.<br><a href="${waUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send to WhatsApp</button></a></div>`;
  } else if(state.pendingAnnouncement?.round===state.round&&state.pendingAnnouncement.text){
    const waUrl="https://wa.me/?text="+encodeURIComponent(state.pendingAnnouncement.text);
-   $("announceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Round ${state.round} picks are locked and ready to share.<br><a href="${waUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send to WhatsApp</button></a></div>`;
+   $("announceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Game Week ${state.round} picks are locked and ready to share.<br><a href="${waUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send to WhatsApp</button></a></div>`;
  } else {
    $("announceBanner").innerHTML="";
  }
  if(state.lastResultsAnnouncement?.text){
    const waUrl2="https://wa.me/?text="+encodeURIComponent(state.lastResultsAnnouncement.text);
-   $("resultsAnnounceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Round ${state.lastResultsAnnouncement.round} results are ready to share.<br><a href="${waUrl2}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send Results to WhatsApp</button></a><button type="button" id="refreshAnnouncementBtn" class="secondary" style="margin-top:8px">Refresh wording</button></div>`;
+   $("resultsAnnounceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Game Week ${state.lastResultsAnnouncement.round} results are ready to share.<br><a href="${waUrl2}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send Results to WhatsApp</button></a><button type="button" id="refreshAnnouncementBtn" class="secondary" style="margin-top:8px">Refresh wording</button></div>`;
    $("refreshAnnouncementBtn").addEventListener("click",async()=>{
      try{state=await api("POST",{action:"refreshLastAnnouncement"});render()}catch(e){$("adminMsg").textContent=e.message}
    });
