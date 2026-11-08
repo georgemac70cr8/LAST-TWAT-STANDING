@@ -577,10 +577,10 @@ async function api(method="GET",body=null){
    const wasWipeout=eliminated.length>0&&eliminated.length===last.results.length;
    const survivors=roundActive.filter(n=>!eliminated.includes(n));
    let resultsText=`Game Week ${last.round} results:\n\n`;
-   resultsText+=eliminated.length?`ELIMINATED:\n${eliminated.join("\n")}\n\n`:"No eliminations this game week!\n\n";
+   resultsText+=eliminated.length?`🔴 ELIMINATED:\n${eliminated.map(n=>"🔴 "+n).join("\n")}\n\n`:"No eliminations this game week!\n\n";
    if(survivors.length===1&&!wasWipeout) resultsText+=`🏆 ${survivors[0]} wins £${state.pot}!`;
    else if(wasWipeout) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, first prize is boosted to £${state.pot}.\n\nALIVE:\n${state.players.map(p=>p.name).sort().join("\n")}`;
-   else resultsText+=`STILL ALIVE:\n${survivors.join("\n")}`;
+   else resultsText+=`STILL ALIVE:\n${survivors.map(n=>"🟢 "+n).join("\n")}`;
    resultsText+=`\n\nhttps://lasttwatstanding.vercel.app/`;
    state.lastResultsAnnouncement={round:last.round,text:resultsText};
  } else if(body.action==="resolve"){
@@ -626,10 +626,10 @@ async function api(method="GET",body=null){
    const eliminated=results.filter(x=>x.result!=="win").map(x=>x.player).sort();
    const stillAlive=state.players.filter(p=>p.alive).map(p=>p.name).sort();
    let resultsText=`Game Week ${resolvedRound} results:\n\n`;
-   resultsText+=eliminated.length?`ELIMINATED:\n${eliminated.join("\n")}\n\n`:"No eliminations this game week!\n\n";
+   resultsText+=eliminated.length?`🔴 ELIMINATED:\n${eliminated.map(n=>"🔴 "+n).join("\n")}\n\n`:"No eliminations this game week!\n\n";
    if(state.winner) resultsText+=`🏆 ${state.winner} wins £${state.pot}!`;
    else if(wipedOut) resultsText+=`Everyone was eliminated — no single winner. All players reinstated, first prize is boosted to £${state.pot}.\n\nALIVE:\n${stillAlive.join("\n")}`;
-   else resultsText+=`STILL ALIVE:\n${stillAlive.join("\n")}`;
+   else resultsText+=`STILL ALIVE:\n${stillAlive.map(n=>"🟢 "+n).join("\n")}`;
    resultsText+=`\n\nhttps://lasttwatstanding.vercel.app/`;
    state.lastResultsAnnouncement={round:resolvedRound,text:resultsText};
  } else if(body.action==="undoLastResolve"){
@@ -1063,8 +1063,8 @@ $("shareStandingsBtn").addEventListener("click",()=>{
  const alive=state.players.filter(p=>p.alive).map(p=>p.name).sort();
  const eliminated=state.players.filter(p=>!p.alive).map(p=>p.name).sort();
  let text=`Current standings — Game Week ${state.round}:\n\n`;
- text+=`STILL ALIVE:\n${alive.join("\n")||"None"}\n\n`;
- text+=`ELIMINATED:\n${eliminated.join("\n")||"None yet"}`;
+ text+=`STILL ALIVE:\n${alive.map(n=>"🟢 "+n).join("\n")||"None"}\n\n`;
+ text+=`🔴 ELIMINATED:\n${eliminated.map(n=>"🔴 "+n).join("\n")||"None yet"}`;
  text+=`\n\nhttps://lasttwatstanding.vercel.app/`;
  window.open("https://wa.me/?text="+encodeURIComponent(text),"_blank");
 });
