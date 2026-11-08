@@ -736,6 +736,9 @@ async function refreshLive(){
  LIVE_BUSY=false;
 }
 setInterval(refreshLive,60000);
+// Messages saved before the "Game Week" wording change still say "Round";
+// reword them on the fly so old saved texts go out with the current wording.
+function gwWording(t){return String(t||"").replace(/^Round (\d+) /,"Game Week $1 ").replace(/No eliminations this round!/g,"No eliminations this game week!")}
 async function renderLogin(){
  try{
    const loginState=await api("GET");
@@ -920,13 +923,13 @@ function renderAdmin(){
    const waUrl="https://wa.me/?text="+encodeURIComponent(text);
    $("announceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Game Week ${state.round} picks are locked and ready to share.<br><a href="${waUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send to WhatsApp</button></a></div>`;
  } else if(state.pendingAnnouncement?.round===state.round&&state.pendingAnnouncement.text){
-   const waUrl="https://wa.me/?text="+encodeURIComponent(state.pendingAnnouncement.text);
+   const waUrl="https://wa.me/?text="+encodeURIComponent(gwWording(state.pendingAnnouncement.text));
    $("announceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Game Week ${state.round} picks are locked and ready to share.<br><a href="${waUrl}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send to WhatsApp</button></a></div>`;
  } else {
    $("announceBanner").innerHTML="";
  }
  if(state.lastResultsAnnouncement?.text){
-   const waUrl2="https://wa.me/?text="+encodeURIComponent(state.lastResultsAnnouncement.text);
+   const waUrl2="https://wa.me/?text="+encodeURIComponent(gwWording(state.lastResultsAnnouncement.text));
    $("resultsAnnounceBanner").innerHTML=`<div class="notice" style="margin-top:10px">Game Week ${state.lastResultsAnnouncement.round} results are ready to share.<br><a href="${waUrl2}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px"><button type="button">Send Results to WhatsApp</button></a><button type="button" id="refreshAnnouncementBtn" class="secondary" style="margin-top:8px">Refresh wording</button></div>`;
    $("refreshAnnouncementBtn").addEventListener("click",async()=>{
      try{state=await api("POST",{action:"refreshLastAnnouncement"});render()}catch(e){$("adminMsg").textContent=e.message}
