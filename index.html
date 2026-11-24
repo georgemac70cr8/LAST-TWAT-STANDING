@@ -413,6 +413,18 @@ async function loadFixtures(){
      const kickoff=ev.date?new Date(ev.date):null;
      return {home,away,kickoff};
    }).sort((a,b)=>(a.kickoff?.getTime()||0)-(b.kickoff?.getTime()||0));
+   // A game week is 10 games with every club playing exactly once. The date window
+   // can spill into the next game week, so keep games chronologically and skip any
+   // game involving a club that already has its game in this week (max 10).
+   const usedClubs=new Set();
+   for(let i=matches.length-1;i>=0;i--) if(matches[i].home==="TBC"&&matches[i].away==="TBC") matches.splice(i,1);
+   const weekMatches=[];
+   for(const m of matches){
+     if(weekMatches.length>=10) break;
+     if(usedClubs.has(m.home)||usedClubs.has(m.away)) continue;
+     usedClubs.add(m.home);usedClubs.add(m.away);weekMatches.push(m);
+   }
+   matches.length=0;matches.push(...weekMatches);
    // Fixture times are shown in each player's own timezone: George and Shaunagh
    // in Malta, Dazza in Sydney, Joycey in Central Time, Iain in Crete, everyone else in UK time.
    // (The admin view just uses the device's own timezone.)
