@@ -81,6 +81,11 @@ h1 .w1{color:#ff9f43}h1 .w2{color:#ff6b9d}h1 .w3{color:#c77dff}
 <div id="fixturesList" class="muted">Loading fixtures…</div>
 </section>
 
+<section class="card" id="leagueCard" style="padding-top:14px;padding-bottom:14px">
+<div id="leagueToggle" role="button" tabindex="0" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer"><strong style="font-size:17px">Premier League table</strong><span id="leagueArrow" style="color:#c8f56a;font-size:20px">▾</span></div>
+<div id="leagueBody" class="hidden" style="margin-top:10px"></div>
+</section>
+
 <section id="playerView" class="card">
 <h2 id="playerHeading">Game Week 3 selection</h2>
 <p class="pick-intro">Choose one team that you think will win this game week.</p>
@@ -815,6 +820,7 @@ function render(){
  $("gameStatus").textContent=state.winner?"FINISHED":"OPEN";
  renderLockCountdown();
  loadFixtures();
+ setupLeagueTable();
  const sorted=[...state.players].sort((a,b)=>a.name.localeCompare(b.name));
  const roundsPlayed=(state.history||[]).length;
  const resetAt=typeof state.teamsResetAtRound==="number"?state.teamsResetAtRound:0;
@@ -950,6 +956,32 @@ function renderAdmin(){
    $("resultsAnnounceBanner").innerHTML="";
  }
 }
+let leagueLoadedAt=0;
+async function loadLeagueTable(){
+ const el=$("leagueBody");
+ if(Date.now()-leagueLoadedAt<300000&&el.dataset.ok==="1") return;
+ el.textContent="Loading table…";
+ try{
+   const r=await fetch("https://site.api.espn.com/apis/v2/sports/soccer/eng.1/standings",{cache:"no-store"});
+   if(!r.ok) throw new Error("bad response");
+   const data=await r.json();
+   const entries=data?.children?.[0]?.standings?.entries||[];
+   if(!entries.length) throw new Error("empty");
+   const stat=(e,n)=>{const x=(e.stats||[]).find(y=>y.name===n);return x?Number(x.value):0};
+   const rows=entries.map(e=>({team:e.team?.displayName||"?",rank:stat(e,"rank"),p:stat(e,"gamesPlayed"),w:stat(e,"wins"),d:stat(e,"ties"),l:stat(e,"losses"),pts:stat(e,"points")}))
+     .sort((a,b)=>(a.rank||99)-(b.rank||99)||b.pts-a.pts);
+   el.innerHTML='<div class="table-wrap"><table><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th></tr></thead><tbody>'+
+     rows.map((t,i)=>`<tr><td>${i+1}</td><td>${esc(t.team)}</td><td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td><strong>${t.pts}</strong></td></tr>`).join("")+"</tbody></table></div>";
+   el.dataset.ok="1";leagueLoadedAt=Date.now();
+ }catch(e){el.textContent="Could not load the league table right now.";el.dataset.ok="0"}
+}
+let leagueWired=false;
+function setupLeagueTable(){
+ if(leagueWired) return;leagueWired=true;
+ const toggle=()=>{const body=$("leagueBody");const open=body.classList.toggle("hidden")===false;$("leagueArrow").textContent=open?"▴":"▾";if(open) loadLeagueTable()};
+ $("leagueToggle").addEventListener("click",toggle);
+ $("leagueToggle").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle()}});
+}
 function lockedPicksCard(){
  if(!state||state.winner||!isLocked()) return "";
  const autoNames=(state.autoAssigned&&state.autoAssigned.round===state.round)?state.autoAssigned.players:[];
@@ -958,7 +990,7 @@ function lockedPicksCard(){
    const auto=t&&autoNames.includes(p.name)?' <span class="small muted" style="display:inline">(auto select)</span>':"";
    return `<div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(213,239,220,.08)"><strong>${esc(p.name)} ${flagFor(p.name)}</strong><span>${t?esc(t)+auto:"<span class='muted'>NO PICK</span>"}</span></div>`;
  }).join("");
- return `<div class="card"><h2 style="margin-bottom:4px">Game Week ${state.round} picks are locked</h2><div class="small muted" style="margin-bottom:8px">Every player's selection is now visible.</div>${rows}</div>`;
+ return `<div class="card" style="outline:2px dashed #c8f56a;outline-offset:3px"><h2 style="margin-bottom:4px">Game Week ${state.round} picks are locked</h2><div class="small muted" style="margin-bottom:8px">Every player's selection is now visible.</div>${rows}</div>`;
 }
 function renderLockCountdown(){
  clearInterval(countdownTimer);
