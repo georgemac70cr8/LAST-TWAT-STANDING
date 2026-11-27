@@ -950,6 +950,16 @@ function renderAdmin(){
    $("resultsAnnounceBanner").innerHTML="";
  }
 }
+function lockedPicksCard(){
+ if(!state||state.winner||!isLocked()) return "";
+ const autoNames=(state.autoAssigned&&state.autoAssigned.round===state.round)?state.autoAssigned.players:[];
+ const rows=state.players.filter(p=>p.alive).sort((x,y)=>x.name.localeCompare(y.name)).map(p=>{
+   const t=state.currentPicks?.[p.name];
+   const auto=t&&autoNames.includes(p.name)?' <span class="small muted" style="display:inline">(auto select)</span>':"";
+   return `<div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid rgba(213,239,220,.08)"><strong>${esc(p.name)} ${flagFor(p.name)}</strong><span>${t?esc(t)+auto:"<span class='muted'>NO PICK</span>"}</span></div>`;
+ }).join("");
+ return `<div class="card"><h2 style="margin-bottom:4px">Game Week ${state.round} picks are locked</h2><div class="small muted" style="margin-bottom:8px">Every player's selection is now visible.</div>${rows}</div>`;
+}
 function renderLockCountdown(){
  clearInterval(countdownTimer);
  const el=$("lockCountdown");
@@ -960,9 +970,13 @@ function renderLockCountdown(){
  function paint(rerenderOnExpiry){
    const p=countdownParts(target-Date.now());
    if(!p){
-     el.innerHTML="";
      clearInterval(countdownTimer);
-     if(rerenderOnExpiry) render();
+     if(rerenderOnExpiry){
+       // Clock just hit zero: pull the latest picks (incl. any default picks) then redraw.
+       api("GET").then(st=>{state=st}).catch(()=>{}).then(()=>render());
+     } else {
+       el.innerHTML=lockedPicksCard();
+     }
      return false;
    }
    el.innerHTML=`<div class="card"><div class="countdown-tiles">${tile(p.d,"days")}${tile(p.h,"hrs")}${tile(p.m,"min")}${tile(p.s,"sec")}</div><div class="countdown-caption">CHOOSE YOUR TEAM BEFORE THE CLOCK RUNS DOWN</div></div>`;
